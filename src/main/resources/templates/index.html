@@ -1,15 +1,74 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:sec="http://www.w3.org/1999/xhtml">
+<html lang="en" xmlns:sec="http://www.w3.org/1999/xhtml" data-th-replace="~{fragments/skeleton::layout('home', ~{::#home_content})}">
 <head>
     <meta charset="UTF-8">
     <title>Welcome</title>
 </head>
 <body>
-<div>
-    <h1>WELCOME MUTHAFUKS</h1>
-    <div sec:authorize="isAuthenticated()">
-        This content is only shown to authenticated users.
-        <p sec:authentication="principal"></p>
+<div id="home_content">
+    <div class="ui padded segment">
+        <h2 class="ui dividing header">How to create this app</h2>
+
+        <div class="ui message" data-th-if="${param.logout}">
+            <p>You have been successfully logged out.</p>
+        </div>
+
+        <div class="ui link cards">
+                <div class="card">
+                    <div class="image"><img src="/images/thumb_oauth_signin.png" alt=""></div>
+                    <div class="content">
+                        <div class="header">OAuth2 sign in</div>
+                        <div class="meta">
+                            <a>part 3</a>
+                        </div>
+                        <div class="description">
+                            Sign in via google and github using Spring security oauth2 client support
+                        </div>
+                    </div>
+                    <div class="extra content">
+                        <div class="center aligned meta">
+                            I
+                            <a href="https://youtu.be/40BxatEr5aE" target="_blank"><i class="ui youtube icon"></i></a> </div>
+                    </div>
+                </div>
+
+            <div class="card">
+                <div class="image"><img src="/images/thumb_overview.png" alt=""></div>
+                <div class="content">
+                    <div class="header">Spring Security Overview</div>
+                    <div class="meta">
+                        <a>part 3</a>
+                    </div>
+                    <div class="description">
+                        Overview of Spring security architecture for Spring mvc web apps
+                    </div>
+                </div>
+                <div class="extra content">
+                    <div class="center aligned meta">
+                        I
+                        <a href="https://youtu.be/40BxatEr5aE" target="_blank"><i class="ui youtube icon"></i></a> </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="image"><img src="/images/thumb_deploy.png" alt=""></div>
+                <div class="content">
+                    <div class="header">Deploying spring apps to cloud</div>
+                    <div class="meta">
+                        <a>part 1</a>
+                    </div>
+                    <div class="description">
+                        Deploying Spring web apps to railway.app cloud provider
+                    </div>
+                </div>
+                <div class="extra content">
+                    <div class="center aligned meta">
+                        I
+                        <a href="https://youtu.be/40BxatEr5aE" target="_blank"><i class="ui youtube icon"></i></a> </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 </body>
