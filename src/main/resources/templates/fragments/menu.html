@@ -10,7 +10,7 @@
                     data-th-attr="onclick=|$('#logout_form').submit();|"
                     data-sec-authorize="isAuthenticated()">Log out</a>
             <form id="logout_form" data-th-action="@{/logout}" method="post"></form><!-- includes hidden csrf element, added by thymeleaf -->
-            <a class="ui secondary basic disabled button"  data-sec-authorize="!isAuthenticated()">Sign Up</a>
+            <a class="ui secondary basic button" data-th-href="@{/user/sign-up}" data-sec-authorize="!isAuthenticated()">Sign Up</a>
         </div>
     </div>
 </div>
