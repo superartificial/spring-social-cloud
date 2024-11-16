@@ -1,6 +1,7 @@
 package nz.clemwhite.spring_social_cloud.security;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Value;
@@ -8,12 +9,12 @@ import lombok.extern.log4j.Log4j2;
 import nz.clemwhite.spring_social_cloud.fomanticUI.Toast;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Objects;
 
 @Controller
 @RequestMapping("user")
@@ -28,7 +29,25 @@ public class AppUserController {
             String username,
             @Size(min = 4, message = "password must be at least {min} characters")
             String password
-    ) {}
+    ) { }
+
+    record ChangePasswordForm(
+        @NotBlank
+        String oldPassword,
+        @NotBlank
+        String password,
+        @NotBlank
+        String passwordConfirm
+    ){
+        @AssertTrue(message = "passwords should match")
+        public boolean isSamePassword() { // needs to start with "is" and match samePassword error reference in the html
+            return Objects.nonNull(password)
+                    &&
+                    Objects.nonNull(passwordConfirm)
+                    &&
+                    password.equals(passwordConfirm);
+        }
+    }
 
     @ModelAttribute
     AppUser appUser(@AuthenticationPrincipal AppUser appUser) {
@@ -36,7 +55,7 @@ public class AppUserController {
     }
 
     @GetMapping
-    String showUserInfo() {
+    String showUserInfo(@ModelAttribute ChangePasswordForm changePasswordForm) {
         return "app-user/user";
     }
 
@@ -61,4 +80,22 @@ public class AppUserController {
             return "redirect:/user/sign-up";
         }
     }
+
+    @PatchMapping("/password")
+    String changePassword(@Valid ChangePasswordForm changePasswordForm, Errors errors, RedirectAttributes attributes, Model model) {
+        if(errors.hasErrors()) {
+            model.addAttribute("tab","pass");
+            return "app-user/user";
+        }
+        try {
+            appUserService.changePassword(changePasswordForm.oldPassword, changePasswordForm.password);
+            attributes.addFlashAttribute("toast",Toast.success("Password","Password changed"));
+            return "redirect:/user";
+        } catch (Exception e) {
+            attributes.addFlashAttribute("tab","pass");
+            attributes.addFlashAttribute("toast",Toast.error("Password",e.getMessage()));
+            return "redirect:/user";
+        }
+    }
+
 }

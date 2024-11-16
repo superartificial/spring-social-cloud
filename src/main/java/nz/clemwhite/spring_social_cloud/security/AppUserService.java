@@ -2,7 +2,9 @@ package nz.clemwhite.spring_social_cloud.security;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -141,7 +143,12 @@ public class AppUserService implements UserDetailsManager {
 
     @Override
     public void changePassword(String oldPassword, String newPassword) {
-
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        AppUser currentUser = (AppUser)authentication.getPrincipal();
+        if (!passwordEncoder.matches(oldPassword, currentUser.getPassword())) {
+            throw new IllegalArgumentException("Old password is not correct");
+        }
+        users.get(currentUser.getUsername()).setPassword(passwordEncoder.encode(newPassword));
     }
 
     @Override

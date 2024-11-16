@@ -42,40 +42,40 @@
       <form class="ui inverted form" id="change_password_form"
             method="post"
             data-th-action="@{/user/password}"
-            _data-th-object="${changePasswordForm}"
-            _data-th-classappend="${#fields.hasAnyErrors() ? 'error' : ''}"
+            data-th-object="${changePasswordForm}"
+            data-th-classappend="${#fields.hasAnyErrors() ? 'error' : ''}"
       >
         <input type="hidden" name="_method" value="PATCH">
-        <div class="field" _data-th-classappend="${#fields.hasErrors('oldPassword') ? 'error' : ''}">
+        <div class="field" data-th-classappend="${#fields.hasErrors('oldPassword') ? 'error' : ''}">
           <label>Old password</label>
-          <input _data-th-field="*{oldPassword}" placeholder="old password" type="password" name="old_password" autocomplete="off" autofocus="">
-          <div _data-th-if="${#fields.hasErrors('oldPassword')}" class="ui basic red pointing prompt fluid label">
-            <p _data-th-errors="*{oldPassword}"></p>
+          <input data-th-field="*{oldPassword}" placeholder="old password" type="password" name="old_password" autocomplete="off" autofocus="">
+          <div data-th-if="${#fields.hasErrors('oldPassword')}" class="ui basic red pointing prompt fluid label">
+            <p data-th-errors="*{oldPassword}"></p>
           </div>
 
         </div>
 
-        <div class="field" _data-th-classappend="${#fields.hasErrors('password') ? 'error' : ''}">
+        <div class="field" data-th-classappend="${#fields.hasErrors('password') ? 'error' : ''}">
           <label>Password</label>
-          <input _data-th-field="*{password}" placeholder="password" type="password" name="password" autocomplete="off" autofocus="">
+          <input data-th-field="*{password}" placeholder="password" type="password" name="password" autocomplete="off" autofocus="">
 
-          <div _data-th-if="${#fields.hasErrors('password')}" class="ui basic red pointing prompt fluid label">
-            <p _data-th-errors="*{password}"></p>
+          <div data-th-if="${#fields.hasErrors('password')}" class="ui basic red pointing prompt fluid label">
+            <p data-th-errors="*{password}"></p>
           </div>
         </div>
-        <div class="field" _data-th-classappend="${#fields.hasErrors('passwordConfirm') ? 'error' : ''}">
+        <div class="field" data-th-classappend="${#fields.hasErrors('passwordConfirm') ? 'error' : ''}">
           <label>Confirm password</label>
-          <input _data-th-field="*{passwordConfirm}" placeholder="confirm password" type="password" name="confirm_password"
+          <input data-th-field="*{passwordConfirm}" placeholder="confirm password" type="password" name="confirm_password"
                  autocomplete="off">
 
-          <div _data-th-if="${#fields.hasErrors('passwordConfirm')}" class="ui basic red pointing prompt fluid label">
-            <p _data-th-errors="*{passwordConfirm}"></p>
+          <div data-th-if="${#fields.hasErrors('passwordConfirm')}" class="ui basic red pointing prompt fluid label">
+            <p data-th-errors="*{passwordConfirm}"></p>
           </div>
         </div>
         <div class="ui error message">
 
-          <div _data-th-if="${#fields.hasErrors('samePassword')}">
-            <p _data-th-errors="*{samePassword}"></p>
+          <div data-th-if="${#fields.hasErrors('samePassword')}">
+            <p data-th-errors="*{samePassword}"></p>
           </div>
 
         </div>
