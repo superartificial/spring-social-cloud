@@ -1,7 +1,14 @@
 package nz.clemwhite.spring_social_cloud.security;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import nz.clemwhite.spring_social_cloud.security.data.AuthorityEntity;
+import nz.clemwhite.spring_social_cloud.security.data.AuthorityEntityRespository;
+import nz.clemwhite.spring_social_cloud.security.data.UserEntity;
+import nz.clemwhite.spring_social_cloud.security.data.UserEntityRespository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,24 +28,51 @@ import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Service
-@Value
+//@Value can no longer use this lombok annotation because it makes the class final
+@Data
+@RequiredArgsConstructor
 public class AppUserService implements UserDetailsManager {
-    PasswordEncoder passwordEncoder;
-    Map<String,AppUser> users = new HashMap<String,AppUser>();
+    private final PasswordEncoder passwordEncoder;
+//    private final Map<String,AppUser> users = new HashMap<String,AppUser>();
+    private final UserEntityRespository userEntityRespository;
+    private final AuthorityEntityRespository authorityEntityRespository;
+
+    private final Executor executor; // so we can create a user on another thread after they have signed in
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return users.get(username);
+        return userEntityRespository
+                .findById(username)
+                .map(ue -> AppUser
+                        .builder()
+                        .username(ue.getUsername())
+                        .password(ue.getPassword())
+                        .name(ue.getName())
+                        .imageUrl(ue.getImageUrl())
+                        .provider(ue.getProvider())
+                        .authorities(ue
+                                .getUserAuthorities()
+                                .stream()
+                                .map(a -> new SimpleGrantedAuthority(a.getAuthority().getName()))
+                                .toList()
+                                )
+                        .build()
+
+                )
+                .orElseThrow(() -> new UsernameNotFoundException(String.format("User %s not found",username)));
     }
 
+    @Transactional
     OAuth2UserService<OidcUserRequest, OidcUser> oidcLoginHandler() {
         return userRequest -> {
             LoginProvider provider = getProvider(userRequest);
             OidcUserService delegate = new OidcUserService();
             OidcUser oidcUser = delegate.loadUser(userRequest);
-            return AppUser
+            AppUser appUser = AppUser
                     .builder()
                     .username(oidcUser.getEmail())
                     .name(oidcUser.getFullName())
@@ -50,6 +84,8 @@ public class AppUserService implements UserDetailsManager {
                     .attributes(oidcUser.getAttributes())
                     .authorities(oidcUser.getAuthorities())
                     .build();
+            saveOauth2User(appUser);
+            return appUser;
         };
     }
 
@@ -57,12 +93,13 @@ public class AppUserService implements UserDetailsManager {
         return LoginProvider.valueOf(userRequest.getClientRegistration().getRegistrationId().toUpperCase());
     }
 
+    @Transactional
     OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2LoginHandler() {
         return userRequest -> {
             LoginProvider provider = getProvider(userRequest);
             DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
             OAuth2User oAuth2User = delegate.loadUser(userRequest);
-            return AppUser
+            AppUser appUser = AppUser
                     .builder()
                     .provider(provider)
                     .username(oAuth2User.getAttribute("login"))
@@ -72,31 +109,19 @@ public class AppUserService implements UserDetailsManager {
                     .attributes(oAuth2User.getAttributes())
                     .authorities(oAuth2User.getAuthorities())
                     .build();
+
+            saveOauth2User(appUser);
+
+            return appUser;
         };
+    }
+
+    private void saveOauth2User(AppUser appUser) {
+        CompletableFuture.runAsync(() -> createUser(appUser),executor);
     }
 
     private LoginProvider getProvider(OAuth2UserRequest userRequest) {
         return LoginProvider.valueOf(userRequest.getClientRegistration().getRegistrationId().toUpperCase());
-    }
-
-    @PostConstruct
-    private void createHardcodedUsers() {
-        var bill = AppUser
-                .builder()
-                .username("bill")
-                .password(passwordEncoder.encode("321"))
-                .authorities(List.of(new SimpleGrantedAuthority("read")))
-                .build();
-        var bob = AppUser
-                .builder()
-                .username("bob")
-                .password(passwordEncoder.encode("1234"))
-                .authorities(List.of(new SimpleGrantedAuthority("read")))
-                .build();
-
-        createUser(bob);
-        createUser(bill);
-
     }
 
     public void createUser(String username, String password) {
@@ -109,9 +134,49 @@ public class AppUserService implements UserDetailsManager {
             .build());
     }
 
+    @Transactional
     private void createUser(AppUser user) {
-        users.putIfAbsent(user.getUsername(),user);
+        UserEntity userEntity = saveUserIfNotExists(user);
+        List<AuthorityEntity> authorities = user
+                .authorities
+                .stream()
+                .map(a -> saveAuthorityIfNotExists(a.getAuthority(), user.getProvider()))
+                .toList();
+        userEntity.mergeAuthorities(authorities);
+        userEntityRespository.save(userEntity);
     }
+
+    @Transactional
+    private AuthorityEntity saveAuthorityIfNotExists(String authority, LoginProvider provider) {
+        return authorityEntityRespository
+                .findByName(authority)
+                .orElseGet(() -> authorityEntityRespository
+                        .save(
+                                new AuthorityEntity(authority,provider)
+                        )
+                );
+    }
+
+    @Transactional
+    private UserEntity saveUserIfNotExists(AppUser user) {
+        return userEntityRespository
+                .findById(user.getUsername())
+                .orElseGet(
+                        () -> userEntityRespository
+                                .save(
+                                        new UserEntity(
+                                                user.getUsername(),
+                                                user.getPassword(),
+                                                user.getEmail(),
+                                                user.getName(),
+                                                user.getImageUrl(),
+                                                user.getProvider()
+                                        )
+                                )
+
+                );
+    }
+
 
     @Override
     public void createUser(UserDetails user) {
@@ -127,6 +192,7 @@ public class AppUserService implements UserDetailsManager {
                 .password(user.getPassword())
                 .authorities(user.getAuthorities())
                 .build());
+
     }
 
     @Override
@@ -135,24 +201,31 @@ public class AppUserService implements UserDetailsManager {
     }
 
     @Override
+    @Transactional
     public void deleteUser(String username) {
         if(userExists(username)) {
-            users.remove(username);
+            userEntityRespository.deleteById(username);
         }
     }
 
     @Override
+    @Transactional
     public void changePassword(String oldPassword, String newPassword) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         AppUser currentUser = (AppUser)authentication.getPrincipal();
         if (!passwordEncoder.matches(oldPassword, currentUser.getPassword())) {
             throw new IllegalArgumentException("Old password is not correct");
         }
-        users.get(currentUser.getUsername()).setPassword(passwordEncoder.encode(newPassword));
+//        users.get(currentUser.getUsername()).setPassword(passwordEncoder.encode(newPassword));
+        userEntityRespository
+            .findById((currentUser.getUsername()))
+            .ifPresent(ue -> ue.setPassword(passwordEncoder.encode(newPassword)));
+
     }
 
+    @Transactional
     @Override
     public boolean userExists(String username) {
-        return users.containsKey(username);
+        return userEntityRespository.existsById(username);
     }
 }

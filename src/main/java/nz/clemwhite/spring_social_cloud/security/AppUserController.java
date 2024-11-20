@@ -61,7 +61,6 @@ public class AppUserController {
 
     @GetMapping("/sign-up")
     String showSignUp(@ModelAttribute SignUpForm signUpForm) {
-        System.out.println("going to sign up page I hope");
         return "app-user/signup";
     }
 

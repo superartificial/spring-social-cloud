@@ -1,0 +1,15 @@
+# Use postgres/example user/password credentials
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:13
+    shm_size: 128mb
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: ${DB_SCHEMA:-ss2c}
+      POSTGRES_PASSWORD: ${DB_PASS:-pass}
+      POSTGRES_USER: ${DB_USER:-user}
+
